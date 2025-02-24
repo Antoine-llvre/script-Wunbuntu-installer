@@ -198,9 +198,48 @@ creer_raccourci "VLC" "vlc"
 # Ajouter Firefox à la barre des tâches Plasma et aux favoris
 ajouter_firefox_plasma
 
+# Fonction pour installer le pilote WiFi rtl8821cu
+installer_wifi() {
+    echo "==> Suppression des anciennes versions du pilote..."
+    sudo dkms remove rtl8821cu/5.12.0.4 --all 2>/dev/null
+    sudo rm -rf /usr/src/rtl8821cu-5.12.0.4
+    echo "==> Nettoyage terminé."
+
+    echo "==> Téléchargement du pilote rtl8821cu..."
+    git clone https://github.com/brektrou/rtl8821CU.git /tmp/rtl8821CU
+    cd /tmp/rtl8821CU || exit 1
+
+    echo "==> Ajout des sources au répertoire DKMS..."
+    sudo mkdir -p /usr/src/rtl8821cu-5.12.0.4
+    sudo cp -R . /usr/src/rtl8821cu-5.12.0.4
+
+    echo "==> Ajout, construction et installation avec DKMS..."
+    sudo dkms add -m rtl8821cu -v 5.12.0.4
+    sudo dkms build -m rtl8821cu -v 5.12.0.4
+    sudo dkms install -m rtl8821cu -v 5.12.0.4
+
+    echo "==> Chargement du module rtl8821cu..."
+    sudo modprobe 8821cu
+
+    echo "==> Configuration pour charger le module au démarrage..."
+    echo "8821cu" | sudo tee -a /etc/modules > /dev/null
+
+    echo "==> Vérification de l'installation..."
+    if lsmod | grep -q "8821cu"; then
+        echo "Le module rtl8821cu est installé et chargé avec succès !"
+    else
+        echo "Erreur : le module rtl8821cu n'a pas été chargé correctement."
+    fi
+
+    echo "==> Nettoyage des fichiers temporaires..."
+    cd ~
+    rm -rf /tmp/rtl8821CU
+}
+
 # Affichage du message "Votre ordinateur est prêt !" avec le nom, numéro de série, modèle, marque et processeur
 echo -e "\033[0;32mVotre ordinateur ($nom_ordinateur) est prêt !"
 echo -e "Numéro de série : $num_serie"
 echo -e "Marque : $marque_ordinateur"
 echo -e "Modèle : $modele_ordinateur"
 echo -e "Processeur : $processeur\033[0m"
+echo -e "Wifi installé"
