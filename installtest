@@ -11,6 +11,7 @@ SUDOERS_FILE="/etc/sudoers.d/chpasswd-$USER_NAME"
 FOND_ECRAN_URL="https://cdn.futura-sciences.com/cdn-cgi/image/width=1024,quality=60,format=auto/sources/images/screen/SOCIETE/Bateaux/bateau-43.jpg"
 FOND_ECRAN_PATH="$USER_HOME/Images/fond_ecran_bateau.jpg"
 DESKTOP_DIR="$BUREAU"
+INSTALL_SCRIPT="$(realpath "$0")"
 mkdir -p "$DESKTOP_DIR"
 
 # ====================
@@ -116,7 +117,13 @@ gsettings set org.cinnamon.desktop.background picture-uri "file://$FOND_ECRAN_PA
 chown "$USER_NAME:$USER_NAME" "$SCRIPT_PATH" "$FOND_ECRAN_PATH"
 chown -R "$USER_NAME:$USER_NAME" "$DESKTOP_DIR"
 
-echo ""
-echo "✅ Tout est prêt !"
-echo "🖥️ Bureau configuré avec les icônes dans l'ordre : Firefox, LibreOffice, VLC, Changer le mot de passe."
-echo "🌄 Fond d'écran appliqué."
+# ====================
+# 7. Demande suppression du script
+# ====================
+zenity --question --title="Suppression du script" --text="Voulez-vous supprimer le script d’installation ?"
+if [ $? -eq 0 ]; then
+    rm -f "$INSTALL_SCRIPT"
+    zenity --info --text="Script supprimé avec succès."
+else
+    zenity --info --text="Le script a été conservé."
+fi
