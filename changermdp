@@ -1,71 +1,61 @@
 #!/bin/bash
 
-# === CONFIGURATION ===
-SCRIPT_PATH="$HOME/changer_mdp.sh"
-AUTOSTART_DIR="$HOME/.config/autostart"
-AUTOSTART_FILE="$AUTOSTART_DIR/changer_mdp.desktop"
-SUDOERS_LINE="$USER ALL=(ALL) NOPASSWD: /usr/sbin/chpasswd"
+# Variables
+USER_HOME="$HOME"
+USER_NAME=$(whoami)
+SCRIPT_PATH="$USER_HOME/changer_mdp.sh"
+DESKTOP_FILE="$USER_HOME/Bureau/ChangerMotDePasse.desktop"
+SUDOERS_FILE="/etc/sudoers.d/chpasswd-$USER_NAME"
 
-# === 1. Créer le script de changement de mot de passe ===
-cat << 'EOF' > "$SCRIPT_PATH"
+# 1. Création du script de changement de mot de passe
+cat > "$SCRIPT_PATH" << 'EOF'
 #!/bin/bash
 
-CURRENT_USER=\$(whoami)
+CURRENT_USER=$(whoami)
 
-NEW_PASS=\$(zenity --password --title="Définir votre nouveau mot de passe")
-[ -z "\$NEW_PASS" ] && exit 1
+NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe")
+[ -z "$NEW_PASS" ] && exit 1
 
-CONFIRM_PASS=\$(zenity --password --title="Confirmer votre mot de passe")
-[ -z "\$CONFIRM_PASS" ] && exit 1
+CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe")
+[ -z "$CONFIRM_PASS" ] && exit 1
 
-if [ "\$NEW_PASS" != "\$CONFIRM_PASS" ]; then
+if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
     zenity --error --text="Les mots de passe ne correspondent pas."
     exit 1
 fi
 
-echo "\$CURRENT_USER:\$NEW_PASS" | sudo /usr/sbin/chpasswd
+echo "$CURRENT_USER:$NEW_PASS" | sudo /usr/sbin/chpasswd
 
-zenity --info --text="Votre mot de passe a été changé avec succès."
-
-rm -- "\$0"
+zenity --info --text="Mot de passe modifié avec succès."
 EOF
 
 chmod +x "$SCRIPT_PATH"
-echo "[OK] Script créé à $SCRIPT_PATH"
+echo "[OK] Script de changement de mot de passe créé : $SCRIPT_PATH"
 
-# === 2. Créer le fichier autostart ===
-mkdir -p "$AUTOSTART_DIR"
-
-cat << EOF > "$AUTOSTART_FILE"
+# 2. Création de l'icône sur le bureau
+mkdir -p "$USER_HOME/Bureau"
+cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
+Name=Changer mon mot de passe
+Comment=Définir un nouveau mot de passe utilisateur
+Exec=sh -c 'bash $SCRIPT_PATH'
+Icon=dialog-password
+Terminal=false
 Type=Application
-Exec=sh -c 'bash $SCRIPT_PATH &'
-Hidden=false
-NoDisplay=false
-X-GNOME-Autostart-enabled=true
-Name=Changer mot de passe
-Comment=Demande un nouveau mot de passe à la première session
+Categories=Utility;
 EOF
 
-echo "[OK] Autostart configuré dans $AUTOSTART_FILE"
+chmod +x "$DESKTOP_FILE"
+echo "[OK] Icône créée sur le bureau : $DESKTOP_FILE"
 
-# === 3. Vérifie et propose l'ajout sudoers si non présent ===
-echo
-echo "[INFO] Pour que le script fonctionne sans demander l'ancien mot de passe,"
-echo "il faut que cette ligne soit présente dans sudoers :"
-echo "$SUDOERS_LINE"
-echo
-echo "Souhaites-tu l’ajouter maintenant ? [o/N]"
-read -r reponse
-
-if [[ "$reponse" =~ ^[Oo]$ ]]; then
-    echo "[OK] Ajout dans sudoers..."
-    echo "$SUDOERS_LINE" | sudo tee /etc/sudoers.d/changepass > /dev/null
-    sudo chmod 440 /etc/sudoers.d/changepass
-    echo "[✔] Ligne ajoutée dans /etc/sudoers.d/changepass"
+# 3. Ajout de la règle sudoers pour autoriser chpasswd sans mot de passe
+if [ ! -f "$SUDOERS_FILE" ]; then
+    echo "$USER_NAME ALL=(ALL) NOPASSWD: /usr/sbin/chpasswd" | sudo tee "$SUDOERS_FILE" > /dev/null
+    sudo chmod 440 "$SUDOERS_FILE"
+    echo "[OK] Règle sudoers ajoutée pour $USER_NAME"
 else
-    echo "[!] Tu devras ajouter cette ligne manuellement avec visudo pour que le script fonctionne sans mot de passe root."
+    echo "[INFO] La règle sudoers existe déjà : $SUDOERS_FILE"
 fi
 
 echo
-echo "✅ Tout est prêt. Le script se lancera à la prochaine ouverture de session."
+echo "✅ Tout est prêt ! Tu peux maintenant cliquer sur l'icône 'Changer mon mot de passe' sur ton bureau."
