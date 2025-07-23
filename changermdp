@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Exec=sh -c 'bash /home/ton_user/changer_mdp.sh &'
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Changer mot de passe
+Comment=Demande à l'utilisateur de définir un mot de passe personnel
