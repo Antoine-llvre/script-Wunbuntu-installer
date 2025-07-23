@@ -1,8 +1,71 @@
+#!/bin/bash
+
+# === CONFIGURATION ===
+SCRIPT_PATH="$HOME/changer_mdp.sh"
+AUTOSTART_DIR="$HOME/.config/autostart"
+AUTOSTART_FILE="$AUTOSTART_DIR/changer_mdp.desktop"
+SUDOERS_LINE="$USER ALL=(ALL) NOPASSWD: /usr/sbin/chpasswd"
+
+# === 1. Créer le script de changement de mot de passe ===
+cat << 'EOF' > "$SCRIPT_PATH"
+#!/bin/bash
+
+CURRENT_USER=\$(whoami)
+
+NEW_PASS=\$(zenity --password --title="Définir votre nouveau mot de passe")
+[ -z "\$NEW_PASS" ] && exit 1
+
+CONFIRM_PASS=\$(zenity --password --title="Confirmer votre mot de passe")
+[ -z "\$CONFIRM_PASS" ] && exit 1
+
+if [ "\$NEW_PASS" != "\$CONFIRM_PASS" ]; then
+    zenity --error --text="Les mots de passe ne correspondent pas."
+    exit 1
+fi
+
+echo "\$CURRENT_USER:\$NEW_PASS" | sudo /usr/sbin/chpasswd
+
+zenity --info --text="Votre mot de passe a été changé avec succès."
+
+rm -- "\$0"
+EOF
+
+chmod +x "$SCRIPT_PATH"
+echo "[OK] Script créé à $SCRIPT_PATH"
+
+# === 2. Créer le fichier autostart ===
+mkdir -p "$AUTOSTART_DIR"
+
+cat << EOF > "$AUTOSTART_FILE"
 [Desktop Entry]
 Type=Application
-Exec=sh -c 'bash /home/ton_user/changer_mdp.sh &'
+Exec=sh -c 'bash $SCRIPT_PATH &'
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 Name=Changer mot de passe
-Comment=Demande à l'utilisateur de définir un mot de passe personnel
+Comment=Demande un nouveau mot de passe à la première session
+EOF
+
+echo "[OK] Autostart configuré dans $AUTOSTART_FILE"
+
+# === 3. Vérifie et propose l'ajout sudoers si non présent ===
+echo
+echo "[INFO] Pour que le script fonctionne sans demander l'ancien mot de passe,"
+echo "il faut que cette ligne soit présente dans sudoers :"
+echo "$SUDOERS_LINE"
+echo
+echo "Souhaites-tu l’ajouter maintenant ? [o/N]"
+read -r reponse
+
+if [[ "$reponse" =~ ^[Oo]$ ]]; then
+    echo "[OK] Ajout dans sudoers..."
+    echo "$SUDOERS_LINE" | sudo tee /etc/sudoers.d/changepass > /dev/null
+    sudo chmod 440 /etc/sudoers.d/changepass
+    echo "[✔] Ligne ajoutée dans /etc/sudoers.d/changepass"
+else
+    echo "[!] Tu devras ajouter cette ligne manuellement avec visudo pour que le script fonctionne sans mot de passe root."
+fi
+
+echo
+echo "✅ Tout est prêt. Le script se lancera à la prochaine ouverture de session."
