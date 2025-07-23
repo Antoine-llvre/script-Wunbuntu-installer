@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Demander un nouveau mot de passe avec Zenity
+NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe")
+CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe")
+
+# Vérification
+if [[ -z "$NEW_PASS" || "$NEW_PASS" != "$CONFIRM_PASS" ]]; then
+    zenity --error --text="Les mots de passe ne correspondent pas ou sont vides."
+    exit 1
+fi
+
+# Appliquer le mot de passe via sudo (pour l'utilisateur courant)
+echo "$USER:$NEW_PASS" | sudo chpasswd
+
+# Optionnel : désactiver ce script après usage
+rm -- "$0"
