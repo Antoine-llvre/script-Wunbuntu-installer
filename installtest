@@ -1,0 +1,122 @@
+#!/bin/bash
+
+# ====================
+# CONFIGURATION
+# ====================
+USER_NAME=$(whoami)
+USER_HOME="$HOME"
+BUREAU="$USER_HOME/Bureau"
+SCRIPT_PATH="$USER_HOME/changer_mdp.sh"
+SUDOERS_FILE="/etc/sudoers.d/chpasswd-$USER_NAME"
+FOND_ECRAN_URL="https://cdn.futura-sciences.com/cdn-cgi/image/width=1024,quality=60,format=auto/sources/images/screen/SOCIETE/Bateaux/bateau-43.jpg"
+FOND_ECRAN_PATH="$USER_HOME/Images/fond_ecran_bateau.jpg"
+DESKTOP_DIR="$BUREAU"
+mkdir -p "$DESKTOP_DIR"
+
+# ====================
+# 1. Script de changement de mot de passe
+# ====================
+cat > "$SCRIPT_PATH" << 'EOF'
+#!/bin/bash
+
+CURRENT_USER=$(whoami)
+
+NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe")
+[ -z "$NEW_PASS" ] && exit 1
+
+CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe")
+[ -z "$CONFIRM_PASS" ] && exit 1
+
+if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
+    zenity --error --text="Les mots de passe ne correspondent pas."
+    exit 1
+fi
+
+echo "$CURRENT_USER:$NEW_PASS" | sudo /usr/sbin/chpasswd
+
+zenity --info --text="Mot de passe modifié avec succès."
+EOF
+
+chmod +x "$SCRIPT_PATH"
+
+# ====================
+# 2. Ajout sudoers
+# ====================
+if [ ! -f "$SUDOERS_FILE" ]; then
+    echo "$USER_NAME ALL=(ALL) NOPASSWD: /usr/sbin/chpasswd" | sudo tee "$SUDOERS_FILE" > /dev/null
+    sudo chmod 440 "$SUDOERS_FILE"
+    echo "[OK] Règle sudoers ajoutée."
+else
+    echo "[INFO] Règle sudoers déjà présente."
+fi
+
+# ====================
+# 3. Installation logiciels (si manquants)
+# ====================
+echo "[INFO] Installation des logiciels nécessaires..."
+
+for pkg in firefox libreoffice vlc; do
+    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
+        echo "[INSTALL] Installation de $pkg..."
+        sudo apt-get update
+        sudo apt-get install -y "$pkg"
+    else
+        echo "[OK] $pkg déjà installé."
+    fi
+done
+
+# ====================
+# 4. Création des raccourcis dans l'ordre
+# ====================
+
+# Firefox
+if [ -f /usr/share/applications/firefox.desktop ]; then
+    cp /usr/share/applications/firefox.desktop "$DESKTOP_DIR/01-firefox.desktop"
+    chmod +x "$DESKTOP_DIR/01-firefox.desktop"
+fi
+
+# LibreOffice (startcenter)
+if [ -f /usr/share/applications/libreoffice-startcenter.desktop ]; then
+    cp /usr/share/applications/libreoffice-startcenter.desktop "$DESKTOP_DIR/02-libreoffice.desktop"
+    chmod +x "$DESKTOP_DIR/02-libreoffice.desktop"
+fi
+
+# VLC
+if [ -f /usr/share/applications/vlc.desktop ]; then
+    cp /usr/share/applications/vlc.desktop "$DESKTOP_DIR/03-vlc.desktop"
+    chmod +x "$DESKTOP_DIR/03-vlc.desktop"
+fi
+
+# Changer mot de passe
+cat > "$DESKTOP_DIR/04-changer-mdp.desktop" << EOF
+[Desktop Entry]
+Name=Changer mon mot de passe
+Comment=Définir un nouveau mot de passe utilisateur
+Exec=sh -c 'bash $SCRIPT_PATH'
+Icon=dialog-password
+Terminal=false
+Type=Application
+Categories=Utility;
+EOF
+
+chmod +x "$DESKTOP_DIR/04-changer-mdp.desktop"
+
+# ====================
+# 5. Fond d’écran
+# ====================
+mkdir -p "$USER_HOME/Images"
+wget -O "$FOND_ECRAN_PATH" "$FOND_ECRAN_URL"
+
+# Appliquer le fond (pour Cinnamon)
+gsettings set org.cinnamon.desktop.background picture-uri "file://$FOND_ECRAN_PATH"
+
+# ====================
+# 6. Permissions
+# ====================
+chown "$USER_NAME:$USER_NAME" "$SCRIPT_PATH" "$FOND_ECRAN_PATH"
+chown -R "$USER_NAME:$USER_NAME" "$DESKTOP_DIR"
+
+echo ""
+echo "✅ Tout est prêt !"
+echo "🖥️ Bureau configuré avec les icônes dans l'ordre : Firefox, LibreOffice, VLC, Changer le mot de passe."
+echo "🌄 Fond d'écran appliqué."
