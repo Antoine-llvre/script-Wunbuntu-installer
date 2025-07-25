@@ -22,17 +22,20 @@ cat > "$SCRIPT_PATH" << 'EOF'
 
 CURRENT_USER=$(whoami)
 
-NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe :")
+# Demander le nouveau mot de passe
+NEW_PASS=$(zenity --password --title="Nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe :")
 [ -z "$NEW_PASS" ] && exit 1
 
-CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe" --text="Veuillez confirmer votre nouveau mot de passe :")
+# Demander la confirmation du nouveau mot de passe
+CONFIRM_PASS=$(zenity --password --title="Confirmer le mot de passe" --text="Veuillez confirmer votre nouveau mot de passe :")
 [ -z "$CONFIRM_PASS" ] && exit 1
 
-
+# Vérifier si les mots de passe correspondent
 if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
     zenity --error --text="Les mots de passe ne correspondent pas."
     exit 1
 fi
+
 
 echo "$CURRENT_USER:$NEW_PASS" | sudo /usr/sbin/chpasswd
 
