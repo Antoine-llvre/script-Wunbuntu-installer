@@ -22,11 +22,12 @@ cat > "$SCRIPT_PATH" << 'EOF'
 
 CURRENT_USER=$(whoami)
 
-NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe")
+NEW_PASS=$(zenity --password --title="Définir votre nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe :")
 [ -z "$NEW_PASS" ] && exit 1
 
-CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe")
+CONFIRM_PASS=$(zenity --password --title="Confirmer votre mot de passe" --text="Veuillez confirmer votre nouveau mot de passe :")
 [ -z "$CONFIRM_PASS" ] && exit 1
+
 
 if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
     zenity --error --text="Les mots de passe ne correspondent pas."
@@ -76,10 +77,22 @@ if [ -f /usr/share/applications/firefox.desktop ]; then
     chmod +x "$DESKTOP_DIR/01-firefox.desktop"
 fi
 
-# LibreOffice (startcenter)
-if [ -f /usr/share/applications/libreoffice-startcenter.desktop ]; then
-    cp /usr/share/applications/libreoffice-startcenter.desktop "$DESKTOP_DIR/02-libreoffice.desktop"
-    chmod +x "$DESKTOP_DIR/02-libreoffice.desktop"
+# LibreOffice Writer
+if [ -f /usr/share/applications/libreoffice-writer.desktop ]; then
+    cp /usr/share/applications/libreoffice-writer.desktop "$DESKTOP_DIR/02-libreoffice-writer.desktop"
+    chmod +x "$DESKTOP_DIR/02-libreoffice-writer.desktop"
+fi
+
+# LibreOffice Calc
+if [ -f /usr/share/applications/libreoffice-calc.desktop ]; then
+    cp /usr/share/applications/libreoffice-calc.desktop "$DESKTOP_DIR/03-libreoffice-calc.desktop"
+    chmod +x "$DESKTOP_DIR/03-libreoffice-calc.desktop"
+fi
+
+# LibreOffice Impress
+if [ -f /usr/share/applications/libreoffice-impress.desktop ]; then
+    cp /usr/share/applications/libreoffice-impress.desktop "$DESKTOP_DIR/04-libreoffice-impress.desktop"
+    chmod +x "$DESKTOP_DIR/04-libreoffice-impress.desktop"
 fi
 
 # VLC
@@ -87,6 +100,18 @@ if [ -f /usr/share/applications/vlc.desktop ]; then
     cp /usr/share/applications/vlc.desktop "$DESKTOP_DIR/03-vlc.desktop"
     chmod +x "$DESKTOP_DIR/03-vlc.desktop"
 fi
+# Ajouter une icône de fichier générique
+cat > "$DESKTOP_DIR/06-fichier.desktop" << EOF
+[Desktop Entry]
+Name=Fichier
+Comment=Ouvrir le gestionnaire de fichiers
+Exec=nautilus $USER_HOME
+Icon=folder
+Terminal=false
+Type=Application
+Categories=Utility;
+EOF
+chmod +x "$DESKTOP_DIR/06-fichier.desktop"
 
 # Changer mot de passe
 cat > "$DESKTOP_DIR/04-changer-mdp.desktop" << EOF
