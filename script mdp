@@ -1,38 +1,83 @@
-#!/bin/bash
+#!/usr/bin/env python3
 
-CURRENT_USER=$(whoami)
+import gi
+import subprocess
+import getpass
 
-# Demander le mot de passe
-NEW_PASS=$(zenity --password \
-    --title="Nouveau mot de passe" \
-    --width=400 \
-    --height=100 \
-    --text="Veuillez entrer votre nouveau mot de passe")
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 
-# Vérifier annulation
-if [ $? -ne 0 ]; then
-    exit 1
-fi
+class PasswordChangeWindow(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Changer le mot de passe")
+        self.set_border_width(20)
+        self.set_default_size(400, 200)
+        self.set_resizable(False)
 
-# Demander la confirmation
-CONFIRM_PASS=$(zenity --password \
-    --title="Confirmer le mot de passe" \
-    --width=400 \
-    --height=100 \
-    --text="Veuillez confirmer votre nouveau mot de passe")
+        # Layout vertical
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=15)
+        self.add(vbox)
 
-if [ $? -ne 0 ]; then
-    exit 1
-fi
+        # Texte d'introduction
+        label = Gtk.Label(label="Veuillez entrer et confirmer votre nouveau mot de passe :")
+        label.set_line_wrap(True)
+        vbox.pack_start(label, False, False, 0)
 
-# Vérifier si les mots de passe correspondent
-if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
-    zenity --error --text="❌ Les mots de passe ne correspondent pas."
-    exit 1
-fi
+        # Grille pour labels et champs
+        grid = Gtk.Grid(column_spacing=10, row_spacing=10)
+        vbox.pack_start(grid, True, True, 0)
 
-# Changer le mot de passe
-echo "$CURRENT_USER:$NEW_PASS" | sudo chpasswd
+        # Champ : nouveau mot de passe
+        self.entry_new = Gtk.Entry()
+        self.entry_new.set_visibility(False)
+        self.entry_new.set_invisible_char("*")
+        grid.attach(Gtk.Label(label="Nouveau mot de passe :"), 0, 0, 1, 1)
+        grid.attach(self.entry_new, 1, 0, 1, 1)
 
-# Confirmation
-zenity --info --text="✅ Mot de passe modifié avec succès."
+        # Champ : confirmation
+        self.entry_confirm = Gtk.Entry()
+        self.entry_confirm.set_visibility(False)
+        self.entry_confirm.set_invisible_char("*")
+        grid.attach(Gtk.Label(label="Confirmer le mot de passe :"), 0, 1, 1, 1)
+        grid.attach(self.entry_confirm, 1, 1, 1, 1)
+
+        # Bouton
+        button = Gtk.Button(label="Valider")
+        button.connect("clicked", self.on_validate)
+        vbox.pack_start(button, False, False, 0)
+
+    def on_validate(self, widget):
+        new_pass = self.entry_new.get_text()
+        confirm_pass = self.entry_confirm.get_text()
+
+        if new_pass != confirm_pass:
+            self.show_message("Les mots de passe ne correspondent pas.", Gtk.MessageType.ERROR)
+            return
+
+        username = getpass.getuser()
+        try:
+            subprocess.run(
+                ["sudo", "chpasswd"],
+                input=f"{username}:{new_pass}".encode(),
+                check=True
+            )
+            self.show_message("Mot de passe modifié avec succès.", Gtk.MessageType.INFO)
+            Gtk.main_quit()
+        except subprocess.CalledProcessError:
+            self.show_message("Échec lors du changement de mot de passe.", Gtk.MessageType.ERROR)
+
+    def show_message(self, message, type):
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            flags=0,
+            message_type=type,
+            buttons=Gtk.ButtonsType.OK,
+            text=message,
+        )
+        dialog.run()
+        dialog.destroy()
+
+win = PasswordChangeWindow()
+win.connect("destroy", Gtk.main_quit)
+win.show_all()
+Gtk.main()
