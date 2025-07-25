@@ -2,35 +2,37 @@
 
 CURRENT_USER=$(whoami)
 
-# Formulaire avec des labels "paddés" pour limiter la largeur des champs
-PASS_DIALOG=$(yad --title="Changer le mot de passe" \
-    --text="\nVeuillez entrer et confirmer votre nouveau mot de passe\n" \
-    --text-align=center \
-    --form \
-    --field="   Nouveau mot de passe   :H" \
-    --field="   Confirmer le mot de passe   :H" \
-    --image="dialog-password" \
-    --image-on-top \
-    --width=500 \
-    --height=250 \
-    --center \
-    --button=gtk-ok:0 --button=gtk-cancel:1)
+# Demander le mot de passe
+NEW_PASS=$(zenity --password \
+    --title="Nouveau mot de passe" \
+    --width=400 \
+    --height=100 \
+    --text="Veuillez entrer votre nouveau mot de passe")
 
-# Vérifier si l'utilisateur a annulé
+# Vérifier annulation
 if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Extraire les mots de passe des résultats
-NEW_PASS=$(echo "$PASS_DIALOG" | awk -F'|' '{print $1}')
-CONFIRM_PASS=$(echo "$PASS_DIALOG" | awk -F'|' '{print $2}')
+# Demander la confirmation
+CONFIRM_PASS=$(zenity --password \
+    --title="Confirmer le mot de passe" \
+    --width=400 \
+    --height=100 \
+    --text="Veuillez confirmer votre nouveau mot de passe")
+
+if [ $? -ne 0 ]; then
+    exit 1
+fi
 
 # Vérifier si les mots de passe correspondent
 if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
-    yad --error --text="❌ Les mots de passe ne correspondent pas."
+    zenity --error --text="❌ Les mots de passe ne correspondent pas."
     exit 1
 fi
 
 # Changer le mot de passe
 echo "$CURRENT_USER:$NEW_PASS" | sudo chpasswd
-yad --info --text="✅ Mot de passe modifié avec succès."
+
+# Confirmation
+zenity --info --text="✅ Mot de passe modifié avec succès."
