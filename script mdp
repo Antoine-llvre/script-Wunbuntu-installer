@@ -1,21 +1,23 @@
+sudo apt-get install yad
+
 #!/bin/bash
 
 CURRENT_USER=$(whoami)
 
 # Demander le nouveau mot de passe
-NEW_PASS=$(zenity --password --title="Nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe :")
+NEW_PASS=$(yad --title="Nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe : " --form --field="Mot de passe:H" --hide-text)
 [ -z "$NEW_PASS" ] && exit 1
 
 # Demander la confirmation du nouveau mot de passe
-CONFIRM_PASS=$(zenity --password --title="Confirmer le mot de passe" --text="Veuillez confirmer votre nouveau mot de passe :")
+CONFIRM_PASS=$(yad --title="Confirmer le mot de passe" --text="Veuillez confirmer votre nouveau mot de passe : " --form --field="Confirmer le mot de passe:H" --hide-text)
 [ -z "$CONFIRM_PASS" ] && exit 1
 
 # Vérifier si les mots de passe correspondent
 if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
-    zenity --error --text="Les mots de passe ne correspondent pas."
+    yad --error --text="Les mots de passe ne correspondent pas."
     exit 1
 fi
 
 # Changer le mot de passe
-echo "$CURRENT_USER:$NEW_PASS" | sudo /usr/sbin/chpasswd
-zenity --info --text="Mot de passe modifié avec succès."
+echo "$CURRENT_USER:$NEW_PASS" | sudo chpasswd
+yad --info --text="Mot de passe modifié avec succès."
