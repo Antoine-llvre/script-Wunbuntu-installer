@@ -5,12 +5,36 @@ sudo apt-get install yad
 CURRENT_USER=$(whoami)
 
 # Demander le nouveau mot de passe
-NEW_PASS=$(yad --title="Nouveau mot de passe" --text="Veuillez saisir votre nouveau mot de passe : " --form --field="Mot de passe:H" --hide-text)
-[ -z "$NEW_PASS" ] && exit 1
+NEW_PASS=$(yad --title="Nouveau mot de passe" \
+    --text="Veuillez saisir votre nouveau mot de passe" \
+    --form --field=":H" --field="Mot de passe:H" --hide-text \
+    --image="dialog-password" \
+    --image-on-top \
+    --width=400 --height=200 \
+    --center \
+    --button=gtk-ok:0)
+
+# Vérifier si l'utilisateur a annulé
+[ $? -ne 0 ] && exit 1
+
+# Extraire le mot de passe du résultat
+NEW_PASS=$(echo $NEW_PASS | cut -d'|' -f2)
 
 # Demander la confirmation du nouveau mot de passe
-CONFIRM_PASS=$(yad --title="Confirmer le mot de passe" --text="Veuillez confirmer votre nouveau mot de passe : " --form --field="Confirmer le mot de passe:H" --hide-text)
-[ -z "$CONFIRM_PASS" ] && exit 1
+CONFIRM_PASS=$(yad --title="Confirmer le mot de passe" \
+    --text="Veuillez confirmer votre nouveau mot de passe" \
+    --form --field=":H" --field="Confirmer le mot de passe:H" --hide-text \
+    --image="dialog-password" \
+    --image-on-top \
+    --width=400 --height=200 \
+    --center \
+    --button=gtk-ok:0)
+
+# Vérifier si l'utilisateur a annulé
+[ $? -ne 0 ] && exit 1
+
+# Extraire le mot de passe du résultat
+CONFIRM_PASS=$(echo $CONFIRM_PASS | cut -d'|' -f2)
 
 # Vérifier si les mots de passe correspondent
 if [ "$NEW_PASS" != "$CONFIRM_PASS" ]; then
