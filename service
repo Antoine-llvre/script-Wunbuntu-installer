@@ -1,0 +1,9 @@
+[Unit]
+Description=Mon Script
+
+[Service]
+ExecStart=/chemin/vers/mon_script.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
